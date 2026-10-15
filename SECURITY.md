@@ -3,7 +3,8 @@
 ## Supported distribution
 
 The current player distribution is AutoModUpdater 1 for Minecraft 1.20.1,
-Forge 47.4.10 and Java 17. Download the complete JAR from the pack owner's release.
+Forge 47.4.10 and Java 17, specifically for veyndor1's `mcmods2` pack.
+Pack players download the complete JAR from the pack owner's release.
 Do not install a bootstrap-only or embedded-client-only artifact.
 
 ## Reporting a vulnerability
@@ -32,11 +33,20 @@ JARs execute code with the player's permissions. Hashes supplied by the same
 publication detect corruption; they do not protect against an attacker who can
 replace both the manifest and its artifacts. There is no independent signing key.
 
+`mcmods2` is the owner's publication feed. Public read/download access does not
+grant write access or pack administration rights. The default feed URL and fixed
+pack identity describe the supported pack; they are not an authentication system.
+The existing local `manifestUrl` override does not grant publication permissions.
+Do not install this build into an unrelated pack: it applies the owner's published
+mods and authoritative configuration roots. Minecraft 1.12.2 and `mc-mods` are
+outside this build's scope.
+
 Legacy mod entries can omit SHA-1, and the general pack downloader accepts HTTP
 for compatibility. Use HTTPS with verified hashes for every real publication.
 Self-update has its own stricter HTTPS and SHA-256 checks. ProGuard raises the
 effort needed to inspect bytecode; it does not make reverse engineering impossible.
 
-Never publish local credentials or account data. Keep source access and ProGuard
-mapping files private. Third-party mod publishers remain responsible for the
+Never publish local credentials or account data. Keep ProGuard mapping files
+private. Source is currently public by the owner's explicit choice; obfuscation
+does not conceal source that is already published. Third-party mod publishers remain responsible for the
 security and compatibility of their own binaries.

@@ -12,7 +12,7 @@ It does not replace the licenses of dependencies, fonts or third-party mods.
   Asset provenance is recorded in `src/main/resources/updater/SOURCES.md`.
 - Minecraft and Forge are external runtime requirements. Their marks and licenses
   belong to their respective owners. This project is not an official Minecraft product.
-- Pack mods in `mcmods2` and the related private `mc-mods` repository retain their
+- Pack mods in the owner's Minecraft 1.20.1 `mcmods2` repository retain their
   authors' licenses. The updater source repository does not duplicate those binaries.
 
 The original project author is **veyndor1**. Preserve original dependency credits.

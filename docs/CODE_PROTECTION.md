@@ -1,8 +1,9 @@
 # Code protection
 
-The owner maintains the complete buildable source in a private repository. Only
-owner-authorized users should receive repository access. Public releases contain
-the compiled and obfuscated distribution, its license and third-party notices.
+The owner has explicitly chosen to keep this source repository public. The
+proprietary license still reserves modification, redistribution and resale rights
+for the owner's code. Public releases contain the compiled and obfuscated
+distribution, its license and third-party notices for the owner's `mcmods2` pack.
 
 ## Release pipeline
 
@@ -23,6 +24,7 @@ evidence are excluded from the repository and release artifacts.
 
 Java bytecode can be decompiled, and required integration classes retain readable
 names. Obfuscation makes inspection harder; it is not encryption or copy-proofing.
+It does not conceal the source available in this public repository.
 SHA-256 checksums detect changed downloads when compared with a trusted value;
 they are not digital signatures or a substitute for trusted publication access.
 

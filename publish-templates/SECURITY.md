@@ -1,5 +1,10 @@
 # Security
 
+This feed is for veyndor1's Minecraft 1.20.1 `mcmods2` pack. Only the owner manages
+the published mods, configs and manifest. Players receive download access, not
+permission to publish updates or administer the repository. The separate
+Minecraft 1.12.2 `mc-mods` repository is outside this distribution's scope.
+
 The updater validates the pack identity, config SHA256 values, file inventories,
 portable paths and ZIP expansion sizes before installation. Links and junctions
 are not accepted as config publication inputs or installation targets.

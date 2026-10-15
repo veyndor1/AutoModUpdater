@@ -9,23 +9,33 @@ Default branch: `1.20.1`. License: [proprietary binary use](LICENSE).
 
 ## What Is This Project?
 
-AutoModUpdater keeps a Minecraft mod pack ready to play. It checks the published
-mod list, downloads changed files, and installs the settings selected by the pack owner.
-This private repository contains the updater source and build tools.
+AutoModUpdater is **veyndor1's updater for the owner-managed `mcmods2` pack**.
+This build targets Minecraft 1.20.1 and reads the mods and settings published in
+[veyndor1/mcmods2](https://github.com/veyndor1/mcmods2).
+
+Only the repository owner controls what is published to that pack. Players using
+the owner's pack can download those updates; downloading this mod does not let
+someone manage the pack or publish their own updates to `mcmods2`.
+This is not offered as a general-purpose updater service for independent packs.
+
+This repository contains the source and build tools and is public at the owner's
+request. The [proprietary license](LICENSE) still applies.
 
 ## Why Use It?
 
-- Players install one updater JAR instead of copying every pack update by hand.
+- Players of the owner's `mcmods2` pack install one updater JAR instead of copying
+  each pack update by hand.
 - Changed published settings are backed up before replacement.
 - Mod changes are installed after Minecraft exits.
 - The updater can also install a newer version of itself.
-- Players do not need a GitHub account or token for the public pack.
+- Pack players do not need a GitHub account or token to download the owner's
+  published files. Download access does not grant publishing access.
 
 ## How Does It Work?
 
 ```mermaid
 flowchart TD
-    A[Start Minecraft] --> B[Read the published pack list]
+    A[Start the owner's Minecraft 1.20.1 pack] --> B[Read the owner's mcmods2 pack list]
     B --> C{Anything changed?}
     C -- No --> D[Continue to Minecraft]
     C -- Yes --> E[Download and verify changed files]
@@ -43,35 +53,43 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A[Private AutoModUpdater source] --> B[Build and test]
+    A[veyndor1 maintains AutoModUpdater] --> B[Build and test]
     B --> C[ProGuard: complete updater JAR]
-    C --> R[AutoModUpdater Releases: owner access]
-    C --> D[mcmods2 Releases: public player download]
-    E[mcmods2 manifest and pack files] --> F[Player updater]
+    C --> R[AutoModUpdater Releases: pack player build]
+    C --> D[mcmods2 Releases: same player build]
+    O[veyndor1 publishes mods and configs] --> E[mcmods2 manifest and pack files]
+    E --> F[Updater in the owner's pack]
     D --> F
-    G[mc-mods: related private pack] -. Reference only .-> A
 ```
 
 ## How Do I Use It?
+
+Use this build only when joining **the owner's `mcmods2` pack** and following
+the owner's pack instructions. Installing it in an unrelated profile can download
+this pack's mods and replace its published configuration roots.
 
 Download the complete `AutoModUpdater-1.jar` from the
 [distribution repository](https://github.com/veyndor1/mcmods2/releases).
 Place it in your Forge profile's `mods` folder. Keep only one updater JAR there.
 Start the game and follow the update window.
 
-The same complete build is also available in this private repository's
+The same complete build is also available in this repository's
 [Releases](https://github.com/veyndor1/AutoModUpdater/releases).
-Public downloads are mirrored through `mcmods2` so players need no source access.
+Both release pages distribute the build for the same owner-managed pack.
 
-The default pack is [mcmods2](https://github.com/veyndor1/mcmods2).
-[mc-mods](https://github.com/veyndor1/mc-mods) is a related private repository;
-access requires the owner's permission. It is not an automatic fallback download source.
+The compiled default feed is
+`https://raw.githubusercontent.com/veyndor1/mcmods2/main/server-mods.json`.
+The expected pack identity is `mc-mods2-1.20.1`.
+
+The separate `mc-mods` repository is for **Minecraft 1.12.2**. It is outside this
+project's scope; this repository does not provide a 1.12.2 build or integration.
 
 ## Detailed Step-by-Step Installation
 
-### For players
+### For players of the owner's pack
 
-1. Install Minecraft 1.20.1 with Forge 47.4.10 and Java 17.
+1. Confirm that you are using the owner's `mcmods2` pack, then install Minecraft
+   1.20.1 with Forge 47.4.10 and Java 17 as instructed by the owner.
 2. Close Minecraft and wait for any previous installer helper to finish.
 3. Download `AutoModUpdater-1.jar` from the release selected by the pack owner.
 4. Open the game profile folder and then its `mods` folder.
@@ -89,7 +107,7 @@ are stored in `config/automodupdater.json` and are excluded from pack publicatio
 
 ### For the repository owner
 
-1. Clone this private repository, use the `1.20.1` branch and install JDK 17.
+1. As the pack maintainer, use this repository's `1.20.1` branch and install JDK 17.
 2. Run `gradlew.bat build` on Windows, or `sh gradlew build` on other systems.
 3. Use `build/libs/AutoModUpdater-1.jar`. The `-release.jar` alias contains the same
    complete distribution: bootstrap, post-exit helper, and embedded GUI mod.
@@ -98,7 +116,8 @@ are stored in `config/automodupdater.json` and are excluded from pack publicatio
    compatible mod JARs in `mods-to-host`, and selected settings in `config-to-host`.
 6. Run `make-manifest.bat` on Windows with the intended pack inputs. It creates a
    local publication; it does not upload files.
-7. Review the result. Upload immutable artifacts first and `server-mods.json` last.
+7. Using the owner's authorized GitHub access, review the result. Upload immutable
+   artifacts first and `server-mods.json` last to `mcmods2/main`.
    Keep older hashed artifacts available for downloads already in progress.
 8. Increase `version` in `build.gradle` for each new development, build and verify
    the complete JAR, then create a real GitHub Release marked Latest.
@@ -110,6 +129,11 @@ before restoring them. A root still published by the pack will be synchronized a
 
 The first upgrade from an older updater without self-update support requires one
 manual JAR replacement. The current player distribution version is **1**.
+
+The local `manifestUrl` setting can override the default address, but changing an
+address does not grant access to publish in `mcmods2`. This build still validates
+its pack identity and Minecraft version; independent pack hosting is not a
+supported setup documented by this project.
 
 See [security and trust boundaries](SECURITY.md) and
 [third-party notices](THIRD_PARTY_NOTICES.md). The
