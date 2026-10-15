@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+[[mods]]
+modId="automodupdater"
+version="${version}"
+displayName="Auto Mod Updater"
+authors="SkyMC"
+description='''Sunucu modlarini ve modellerini oyun acilisinda gunceller.'''
+displayTest="IGNORE_ALL_VERSION"
+[[dependencies.automodupdater]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.10,48)"
+ordering="NONE"
+side="CLIENT"
+[[dependencies.automodupdater]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="CLIENT"

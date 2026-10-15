@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="460" viewBox="0 0 1280 460" role="img" aria-labelledby="title desc">
+  <title id="title">AutoModUpdater — ready before you play</title>
+  <desc id="desc">A violet update package passes through verification into an amber voxel game scene. Minecraft 1.20.1, Forge 47.4.10, Java 17.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#252842" stroke-width="1"/></pattern>
+    <linearGradient id="box" x2="1" y2="1"><stop stop-color="#a899ff"/><stop offset="1" stop-color="#7962d9"/></linearGradient>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8" fill="none" stroke="#d3c5ff" stroke-width="1.5"/></marker>
+  </defs>
+  <rect width="1280" height="460" rx="24" fill="#16192c"/>
+  <path d="M760 0H1256Q1280 0 1280 24V436Q1280 460 1256 460H760Z" fill="url(#grid)"/>
+  <rect x="56" y="47" width="194" height="30" rx="15" fill="#2a2846"/>
+  <text x="76" y="67" fill="#d3c5ff" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">VEYNDOR / MINECRAFT</text>
+  <text x="56" y="166" fill="#faf4e9" font-family="Arial,sans-serif" font-size="62" font-weight="700" letter-spacing="-2">AutoModUpdater</text>
+  <text x="59" y="215" fill="#d2c9e2" font-family="Arial,sans-serif" font-size="26">Ready before you play.</text>
+  <text x="59" y="274" fill="#a9abc3" font-family="Arial,sans-serif" font-size="18">Check the pack. Verify the files.</text>
+  <text x="59" y="303" fill="#a9abc3" font-family="Arial,sans-serif" font-size="18">Install together. Keep a backup.</text>
+  <path d="M58 348H627" stroke="#35374e"/>
+  <text x="59" y="390" fill="#f1bc70" font-family="Arial,sans-serif" font-size="15" letter-spacing="1">MINECRAFT 1.20.1   /   FORGE 47.4.10   /   JAVA 17</text>
+  <g transform="translate(764 127)">
+    <path d="M0 38 68 0 136 38 68 77Z" fill="#c4b8ff"/>
+    <path d="M0 38 68 77V160L0 121Z" fill="url(#box)"/>
+    <path d="M68 77 136 38V121L68 160Z" fill="#5d4baf"/>
+    <path d="m35 19 68 39v34l-18 10V68L17 29Z" fill="#ede6ff" opacity=".6"/>
+    <path d="M68 188V207H159" fill="none" stroke="#d3c5ff" stroke-width="3" marker-end="url(#arrow)"/>
+    <circle cx="136" cy="12" r="26" fill="#f3c17b"/>
+    <path d="m124 12 8 8 16-19" fill="none" stroke="#302844" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="68" y="254" text-anchor="middle" fill="#d3c5ff" font-family="Arial,sans-serif" font-size="13" letter-spacing="2">VERIFIED PACK</text>
+  </g>
+  <g transform="translate(990 94)">
+    <rect width="220" height="253" rx="13" fill="#28263e" stroke="#59516e"/>
+    <path d="M13 0H207Q220 0 220 13V32H0V13Q0 0 13 0" fill="#393149"/>
+    <circle cx="16" cy="16" r="3" fill="#e4ae80"/><circle cx="28" cy="16" r="3" fill="#a899ff"/>
+    <text x="48" y="21" fill="#d9cee6" font-family="Arial,sans-serif" font-size="10" letter-spacing="2">YOUR GAME</text>
+    <rect x="14" y="46" width="192" height="142" fill="#55405d"/>
+    <rect x="160" y="61" width="24" height="24" fill="#f5c17b"/>
+    <path d="M14 137H46V113H78V130H110V101H142V121H174V141H206V188H14Z" fill="#9a6570"/>
+    <path d="M14 165H46V145H78V157H110V132H142V146H174V158H206V188H14Z" fill="#c78b73"/>
+    <path d="M14 181H78V170H142V181H206V188H14Z" fill="#ecc08b"/>
+    <rect x="30" y="205" width="160" height="29" rx="6" fill="#ebba77"/>
+    <text x="110" y="224" text-anchor="middle" fill="#302844" font-family="Arial,sans-serif" font-weight="700" font-size="12" letter-spacing="2">READY TO PLAY</text>
+  </g>
+</svg>

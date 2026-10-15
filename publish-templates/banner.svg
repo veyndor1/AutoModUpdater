@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+<rect width="1200" height="360" fill="#111b22"/><path d="M0 280h1200v80H0z" fill="#1c2d2a"/>
+<g fill="#76d18d"><path d="M76 96h112v28H76zM76 124h28v112H76zM160 124h28v112h-28zM104 180h56v28h-56z"/>
+<path d="M230 160h110v28H230zM312 132h28v84h-28zM340 160h28v28h-28z"/></g>
+<path d="M410 112h70l24 28h90v110H410z" fill="#62afd0"/><path d="M434 171h128v14H434zm0 30h98v14h-98z" fill="#122a36"/>
+<text x="650" y="171" fill="#edf6f0" font-family="monospace" font-weight="bold" font-size="58">mc-mods2</text>
+<text x="650" y="217" fill="#a3bbb0" font-family="monospace" font-size="24">Forge 1.20.1 · mods + config</text>
+</svg>

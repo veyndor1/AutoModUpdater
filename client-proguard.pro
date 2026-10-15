@@ -1,0 +1,7 @@
+-dontshrink
+-dontoptimize
+-keepattributes *Annotation*,InnerClasses,EnclosingMethod,Signature
+-dontwarn **
+-keep class com.skymc.autoupdater.AutoUpdaterMod { *; }
+-keep class com.skymc.autoupdater.GuiEventHandler { *; }
+-keep class com.skymc.autoupdater.GuiUpdatePrompt { *; }

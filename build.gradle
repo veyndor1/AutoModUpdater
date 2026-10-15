@@ -1,0 +1,93 @@
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'com.guardsquare:proguard-gradle:7.6.1' }
+}
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'net.minecraftforge.gradle' version '6.0.54' apply false
+}
+group = 'com.skymc.autoupdater'
+version = '1'
+base.archivesName = 'AutoModUpdater'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+repositories {
+    maven { url = 'https://maven.minecraftforge.net' }
+    maven { url = 'https://libraries.minecraft.net' }
+    mavenCentral()
+}
+dependencies {
+    compileOnly 'net.minecraftforge:fmlloader:1.20.1-47.4.10'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation platform('org.junit:junit-bom:5.10.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('updater/build.properties') { expand 'version': project.version }
+}
+test { useJUnitPlatform { excludeTags 'release' }; systemProperty 'java.awt.headless', 'true' }
+jar { manifest { attributes 'Automatic-Module-Name': 'com.skymc.autoupdater.bootstrap' } }
+shadowJar {
+    archiveClassifier = 'bootstrap'
+    relocate 'com.google.gson', 'com.skymc.autoupdater.bootstrap.internal.gson'
+    mergeServiceFiles()
+}
+tasks.register('obfuscateBootstrap', proguard.gradle.ProGuardTask) {
+    dependsOn shadowJar
+    configuration 'proguard.pro'
+    injars shadowJar.archiveFile
+    outjars layout.buildDirectory.file('obfuscated/bootstrap.jar')
+    libraryjars configurations.compileClasspath
+    libraryjars fileTree(javaToolchains.compilerFor(java.toolchain).get().metadata.installationPath.dir('jmods')) { include '*.jmod' }
+    printmapping layout.buildDirectory.file('libs/mapping-bootstrap.txt').get().asFile
+}
+tasks.register('releaseJar', Jar) {
+    dependsOn 'obfuscateBootstrap', ':client:obfuscateClient'
+    archiveClassifier = 'release'
+    manifest { attributes 'Automatic-Module-Name': 'com.skymc.autoupdater.bootstrap' }
+    from { zipTree(layout.buildDirectory.file('obfuscated/bootstrap.jar')) }
+    from(project(':client').layout.buildDirectory.file('obfuscated/client.jar')) {
+        into 'embedded'
+        rename { 'automodupdater-client.jar' }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+build.dependsOn 'releaseJar'
+// Both outer JAR names are the same complete distribution. The default Java
+// archive would contain only bootstrap classes and cannot load the GUI mod.
+tasks.named('jar', Jar) { enabled = false }
+tasks.register('plainJarAlias', Copy) {
+    dependsOn 'releaseJar'
+    from(tasks.named('releaseJar', Jar).flatMap { it.archiveFile })
+    into layout.buildDirectory.dir('libs')
+    rename { "AutoModUpdater-${project.version}.jar" }
+}
+build.dependsOn 'plainJarAlias'
+build.doLast {
+    println "Dagitilacak tam JAR: build/libs/AutoModUpdater-${project.version}.jar"
+}
+tasks.register('verifyRelease', Test) {
+    dependsOn 'releaseJar', 'plainJarAlias', 'testClasses'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'release' }
+    systemProperty 'java.awt.headless', 'true'
+    systemProperty 'updater.release', tasks.releaseJar.archiveFile.get().asFile.absolutePath
+}
+check.dependsOn 'verifyRelease'
+tasks.register('verifyManifest', Exec) {
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('win') }
+    commandLine 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', file('scripts/test-manifest.ps1')
+}
+check.dependsOn 'verifyManifest'
+
+tasks.register('acceptanceClasspath') {
+    dependsOn 'testClasses'
+    doLast {
+        def target = file('.tools/acceptance-classpath.txt')
+        target.parentFile.mkdirs()
+        target.setText(sourceSets.test.runtimeClasspath.asPath, 'UTF-8')
+    }
+}

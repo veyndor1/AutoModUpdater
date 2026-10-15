@@ -1,0 +1,11 @@
+-dontshrink
+-dontoptimize
+-keepattributes *Annotation*,InnerClasses,EnclosingMethod,Signature
+-dontwarn net.minecraft.**
+-dontwarn net.minecraftforge.**
+-dontwarn cpw.mods.**
+-dontwarn org.**
+-dontwarn com.google.**
+-keep class com.skymc.autoupdater.bootstrap.UpdaterLocator { *; }
+-keep class com.skymc.autoupdater.bootstrap.InstallerHelper { public static void main(java.lang.String[]); }
+-keep class com.skymc.autoupdater.bootstrap.internal.gson.** { *; }

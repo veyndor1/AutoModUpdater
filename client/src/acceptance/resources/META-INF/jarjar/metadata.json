@@ -1,0 +1,1 @@
+{"jars":[{"identifier":{"group":"updater.acceptance","artifact":"probe-library"},"version":{"range":"[1.0,2.0)","artifactVersion":"1.0"},"path":"META-INF/jarjar/probe-library-1.0.jar","isObfuscated":false}]}
