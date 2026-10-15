@@ -4,7 +4,7 @@
 
 **Minecraft 1.20.1 · Forge 47.4.10 · Java 17**
 
-Languages: Java, PowerShell, Python, JavaScript, Gradle Groovy, Windows Batch.
+Languages: Java, PowerShell, Python, Gradle Groovy, Windows Batch.
 Default branch: `1.20.1`. License: [proprietary binary use](LICENSE).
 
 ## What Is This Project?
@@ -114,3 +114,4 @@ manual JAR replacement. The current player distribution version is **1**.
 See [security and trust boundaries](SECURITY.md) and
 [third-party notices](THIRD_PARTY_NOTICES.md). The
 [code protection policy](docs/CODE_PROTECTION.md) explains the distribution boundaries.
+See [repository settings](docs/REPOSITORY.md) for access and branch protection status.
