@@ -26,20 +26,25 @@ public final class ModDownloader {
             SafePaths.checkLinks(StateFiles.root(game)); SafePaths.checkLinks(modsDir.toPath());
             PackManifest manifest = new PackManifest(httpGetString(Config.manifestUrl));
             SelfUpdate.protectModTargets(game, manifest.mods);
-            SelfUpdate.protectModTargets(game, manifest.removeMods);
             if (manifest.json.has("updater") && !new URL(Config.manifestUrl).getProtocol().equals("https"))
                 throw new IOException("Updater publication requires HTTPS");
             ConfigInstaller configs = new ConfigInstaller(game, window);
             Path staging = stagingDir(gameFile).toPath(); Files.createDirectories(staging);
             Map<String,String> ready = new LinkedHashMap<>(); List<String> names = new ArrayList<>();
             Map<String,String> removals = new LinkedHashMap<>(); List<String> removalNames = new ArrayList<>();
+            List<String> updaterRemovals = new ArrayList<>();
             for (JsonElement value : manifest.removeMods) {
                 JsonObject entry = value.getAsJsonObject(); String name = entry.get("fileName").getAsString();
                 String display = entry.has("name") ? entry.get("name").getAsString() : name;
                 window.removal(name, display, entry.has("reason") ? entry.get("reason").getAsString() : "Paket düzeni için zorunlu kaldırma");
                 Path target = SafePaths.resolve(modsDir.toPath(), name);
                 if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-                    if (!Files.isRegularFile(target) || SelfUpdate.isDistribution(target)) throw new IOException("Unsafe removal target: " + name);
+                    if (!Files.isRegularFile(target)) throw new IOException("Unsafe removal target: " + name);
+                    if (SelfUpdate.isDistribution(target)) {
+                        // Only the verified self-update transaction may replace the running updater.
+                        updaterRemovals.add(name);
+                        continue;
+                    }
                     removals.put(name, sha1Of(target.toFile())); removalNames.add(display);
                     window.item(UpdateProgress.Kind.REMOVAL, name, display, UpdateProgress.Phase.CHECKING, 0, -1);
                 } else window.item(UpdateProgress.Kind.REMOVAL, name, display, UpdateProgress.Phase.ABSENT, 0, -1);
@@ -86,6 +91,10 @@ public final class ModDownloader {
             }
             activeKind = null;
             SelfUpdate.Prepared updater = SelfUpdate.prepare(game, manifest.json.getAsJsonObject("updater"), window);
+            for (String name : updaterRemovals) {
+                if (updater == null || !name.equalsIgnoreCase(updater.journal().get("oldName").getAsString()))
+                    throw new IOException("Updater removal requires a verified newer updater");
+            }
             ConfigInstaller.Prepared prepared = configs.prepare(manifest.configs);
             configs.arm(prepared, ready, removals);
             if (!ready.isEmpty() || !removals.isEmpty()) PendingInstall.recordBatch(game, ready, removals);

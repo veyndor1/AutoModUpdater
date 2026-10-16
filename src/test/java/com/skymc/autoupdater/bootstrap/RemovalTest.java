@@ -92,11 +92,24 @@ class RemovalTest {
         assertFalse(PendingInstall.hasPending(game));
     }
     @Test void updaterAndDirectoryTargetsAreProtected() throws Exception {
-        SelfUpdateTest.jar(game.resolve("mods/updater.jar"),"2.0");
+        SelfUpdateTest.jar(game.resolve("mods/updater.jar"),"2.1");
         publish(new JsonArray(),new JsonArray(),ConfigFixture.array(removal("updater.jar")));
         assertFalse(run().successful()); assertTrue(Files.isRegularFile(game.resolve("mods/updater.jar")));
         Files.createDirectories(game.resolve("mods/folder.jar"));
         publish(new JsonArray(),new JsonArray(),ConfigFixture.array(removal("folder.jar")));
         assertFalse(run().successful()); assertFalse(PendingInstall.hasPending(game));
+    }
+    @Test void obsoleteUpdaterAndCrashAssistantEntriesDoNotBlockCurrentUpdater() throws Exception {
+        Path current = game.resolve("mods/AutoModUpdater-2.1.jar");
+        SelfUpdateTest.jar(current,"2.1");
+        String crash = "CrashAssistant-forge-1.19-1.20.1-1.11.12.jar";
+        Files.move(game.resolve("mods/old.jar"),game.resolve("mods/"+crash));
+        publish(new JsonArray(),new JsonArray(),ConfigFixture.array(
+                removal(crash),removal("AutoModUpdater-1.20.1-1.1.jar")));
+        UpdateReport report = run();
+        assertTrue(report.successful(),report.error()); assertEquals(1,report.removals());
+        assertEquals(1,PendingInstall.install(game));
+        assertFalse(Files.exists(game.resolve("mods/"+crash))); assertTrue(Files.exists(current));
+        assertFalse(SelfUpdate.hasPending(game)); assertFalse(PendingInstall.hasPending(game));
     }
 }

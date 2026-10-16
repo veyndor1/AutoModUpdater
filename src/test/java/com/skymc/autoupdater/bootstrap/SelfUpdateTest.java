@@ -55,10 +55,10 @@ class SelfUpdateTest {
     void arm() throws Exception { SelfUpdate.arm(game, prepare()); }
     Path target() { return game.resolve("mods/AutoModUpdater-3.jar"); }
     @Test void numericVersionsAreOrderedAndDowngradesNeverDownload() throws Exception {
-        assertEquals("2.0", SelfUpdate.version());
+        assertEquals("2.1", SelfUpdate.version());
         assertTrue(SelfUpdate.compare("10", "2") > 0); assertTrue(SelfUpdate.compare("1.10", "1.9") > 0);
         assertEquals(0, SelfUpdate.compare("1.0", "1"));
-        for (String version : List.of("0", "1", "1.0", "2.0")) {
+        for (String version : List.of("0", "1", "1.0", "2.1")) {
             publication.addProperty("version", version); publication.addProperty("fileName", "AutoModUpdater-" + version + ".jar");
             assertNull(SelfUpdate.prepare(game, publication, UpdateProgress.NONE, (u,t,p) -> fail("No download for older/equal version")));
         }

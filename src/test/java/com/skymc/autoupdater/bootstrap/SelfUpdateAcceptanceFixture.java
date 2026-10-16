@@ -13,7 +13,7 @@ public final class SelfUpdateAcceptanceFixture {
         Files.createDirectories(game.resolve("mods")); Files.createDirectories(game.resolve("config/acceptance"));
         Path fixture = game.resolve("fixture"); Files.createDirectories(fixture);
         Path next = SelfUpdateReleaseTest.future(release,fixture.resolve("future-test-only.jar"));
-        Files.copy(release,game.resolve("mods/AutoModUpdater-2.0.jar"));
+        Files.copy(release,game.resolve("mods/AutoModUpdater-2.1.jar"));
         Files.copy(Path.of("client/build/acceptance/acceptance-probe.jar"),game.resolve("mods/acceptance-probe.jar"));
         byte[] extra = SelfUpdateReleaseTest.rewrite(Files.readAllBytes(Path.of("client/build/acceptance/acceptance-extra.jar")),
                 Map.of("acceptance-extra-version.txt","v2".getBytes(StandardCharsets.UTF_8)));

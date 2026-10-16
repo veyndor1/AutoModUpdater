@@ -1,7 +1,7 @@
 param([string]$Prefix='config-')
 $ErrorActionPreference = 'Stop'
 $workspace = Split-Path $PSScriptRoot -Parent
-$release = Join-Path $workspace 'build/libs/AutoModUpdater-2.0-release.jar'
+$release = Join-Path $workspace 'build/libs/AutoModUpdater-2.1-release.jar'
 $expectedRelease = (Get-FileHash -LiteralPath $release -Algorithm SHA256).Hash.ToLowerInvariant()
 $cases = @{'config-only'='config-only-no-restart';'dismiss'='dismiss-and-normal-exit';'manual'='manual-exit';'restart'='restart-mod-active-and-server-joined';'recovery'='restart-mod-active-and-server-joined';'offline'='offline-error-no-restart'}
 $results = @()
@@ -42,7 +42,7 @@ foreach ($case in $cases.Keys) {
     }
     $results += @{profile=$name;result=$actual;releaseSha256=$expectedRelease;earlyConfig=$probe.earlyConfig;configAtStartup=$probe.configVersion;helpers=$helpers}
 }
-$release = Join-Path $workspace 'build/libs/AutoModUpdater-2.0-release.jar'
+$release = Join-Path $workspace 'build/libs/AutoModUpdater-2.1-release.jar'
 $sha = [Security.Cryptography.SHA256]::Create(); $stream = [IO.File]::OpenRead($release)
 try {$digest=[BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','').ToLowerInvariant()} finally {$stream.Dispose();$sha.Dispose()}
 $report=@{minecraft='1.20.1';forge='47.4.10';java='17';releaseSha256=$digest;cases=$results;verifiedAt=[DateTimeOffset]::Now.ToString('o')}

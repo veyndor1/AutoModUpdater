@@ -11,7 +11,7 @@ $classpath = [IO.File]::ReadAllText((Join-Path $workspace '.tools/acceptance-cla
 $serverStart = [Diagnostics.ProcessStartInfo]::new((Join-Path $jdk 'bin/java.exe'))
 $serverStart.ArgumentList.Add('-cp'); $serverStart.ArgumentList.Add($classpath)
 $serverStart.ArgumentList.Add('com.skymc.autoupdater.bootstrap.SelfUpdateAcceptanceFixture')
-$serverStart.ArgumentList.Add($game); $serverStart.ArgumentList.Add((Join-Path $workspace 'build/libs/AutoModUpdater-2.0.jar'))
+$serverStart.ArgumentList.Add($game); $serverStart.ArgumentList.Add((Join-Path $workspace 'build/libs/AutoModUpdater-2.1.jar'))
 $serverStart.WorkingDirectory = $workspace; $serverStart.UseShellExecute = $false; $serverStart.CreateNoWindow = $true
 $serverStart.RedirectStandardOutput = $true; $serverStart.RedirectStandardError = $true
 $server = [Diagnostics.Process]::Start($serverStart)
@@ -54,7 +54,7 @@ try {
     $state = Join-Path $game '.automodupdater/packs/mc-mods2-1.20.1'
     $receipt = Get-Content -Raw -LiteralPath (Join-Path $state ('result-' + $process.Id + '.json')) | ConvertFrom-Json
     if (-not $receipt.installed -or -not $receipt.relaunched) { throw 'Helper did not install and relaunch.' }
-    if (Test-Path -LiteralPath (Join-Path $game 'mods/AutoModUpdater-2.0.jar')) { throw 'Old filename left in mods.' }
+    if (Test-Path -LiteralPath (Join-Path $game 'mods/AutoModUpdater-2.1.jar')) { throw 'Old filename left in mods.' }
     if (-not (Test-Path -LiteralPath (Join-Path $game 'mods/AutoModUpdater-3.jar'))) { throw 'New filename missing.' }
     if ((Get-FileHash -LiteralPath (Join-Path $game 'mods/AutoModUpdater-3.jar')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $game 'fixture/future-test-only.jar')).Hash) { throw 'Installed bytes differ.' }
     if (Test-Path -LiteralPath (Join-Path $state 'self-update.json')) { throw 'Self-update journal not completed.' }
@@ -66,7 +66,7 @@ try {
     }
     $settings = Get-Content -Raw -LiteralPath (Join-Path $game 'config/automodupdater.json') | ConvertFrom-Json
     if ($settings.'custom-preserve' -ne 'unchanged') { throw 'User settings changed.' }
-    $report = @{profile=$game;fromVersion='2.0';toVersion=3;forgeLoadedVersion=3;button='existing Continue';initialExitCode=0;installed=$receipt.installed;relaunched=$receipt.relaunched;noDuplicatePrompt=$true;settingsPreserved=$true;crashReports=0;verifiedAt=[DateTimeOffset]::Now.ToString('o')}
+    $report = @{profile=$game;fromVersion='2.1';toVersion=3;forgeLoadedVersion=3;button='existing Continue';initialExitCode=0;installed=$receipt.installed;relaunched=$receipt.relaunched;noDuplicatePrompt=$true;settingsPreserved=$true;crashReports=0;verifiedAt=[DateTimeOffset]::Now.ToString('o')}
     $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $game 'self-update-acceptance.json') -Encoding UTF8
     Write-Output ('PASS: real Forge 1.20.1 / 47.4.10; existing Continue -> full updater replacement -> new JVM -> active game; ' + $game)
 } finally {

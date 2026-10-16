@@ -40,7 +40,7 @@ class SelfUpdateReleaseTest {
                 if (entry.getName().equals("META-INF/mods.toml")) found = zip.readAllBytes();
             metadata = Objects.requireNonNull(found);
         }
-        embedded = rewrite(embedded,Map.of("META-INF/mods.toml",new String(metadata,StandardCharsets.UTF_8).replace("version=\"2.0\"","version=\"3\"").getBytes(StandardCharsets.UTF_8)));
+        embedded = rewrite(embedded,Map.of("META-INF/mods.toml",new String(metadata,StandardCharsets.UTF_8).replace("version=\"2.1\"","version=\"3\"").getBytes(StandardCharsets.UTF_8)));
         byte[] build = "version=3\nminecraftVersion=1.20.1\nforgeMajor=47\njavaMajor=17\n".getBytes(StandardCharsets.UTF_8);
         Files.write(target,rewrite(Files.readAllBytes(release),Map.of(SelfUpdate.CLIENT,embedded,SelfUpdate.BUILD,build)));
         SelfUpdate.validateJar(target,"3"); return target;
@@ -55,6 +55,8 @@ class SelfUpdateReleaseTest {
             entry.addProperty("url",web.base+"/new.jar");
             JsonObject manifest = new JsonObject(); manifest.addProperty("schemaVersion",2); manifest.addProperty("minecraftVersion","1.20.1");
             manifest.addProperty("packId",StateFiles.PACK_ID); manifest.add("mods",new JsonArray()); manifest.add("configs",new JsonArray()); manifest.add("updater",entry);
+            JsonObject removal = new JsonObject(); removal.addProperty("fileName",old.getFileName().toString());
+            manifest.add("removeMods",ConfigFixture.array(removal));
             web.assets.put("/server-mods.json",manifest.toString().getBytes(StandardCharsets.UTF_8)); web.assets.put("/new.jar",Files.readAllBytes(next));
             Files.createDirectories(game.resolve("config"));
             Files.writeString(game.resolve("config/automodupdater.json"),"{\"manifestUrl\":\""+web.base+"/server-mods.json\",\"autoRestart\":true,\"theme\":\"light\",\"custom\":42}");
@@ -65,11 +67,13 @@ class SelfUpdateReleaseTest {
             assertFalse(PendingInstall.hasPending(game)); assertTrue(SelfUpdate.hasPending(game));
             assertEquals(-1,Files.mismatch(release(),old));
             // SHA/version checks happen before any journal can be armed, including over real TLS.
-            Path clean = temp.resolve("bad-download"); Files.createDirectories(clean.resolve("mods")); Files.copy(release(),clean.resolve("mods/updater.jar"));
+            Path clean = temp.resolve("bad-download"); Files.createDirectories(clean.resolve("mods")); Files.copy(release(),clean.resolve("mods/old-updater.jar"));
             Files.createDirectories(clean.resolve("config")); Files.write(clean.resolve("config/automodupdater.json"),settings);
             web.assets.put("/new.jar","tampered".getBytes(StandardCharsets.UTF_8));
             UpdateReport failed = ModDownloader.download(clean.toFile(),clean.resolve("mods").toFile(),UpdateProgress.NONE);
             assertFalse(failed.successful()); assertFalse(SelfUpdate.hasPending(clean));
+            assertFalse(PendingInstall.hasPending(clean));
+            assertEquals(-1,Files.mismatch(release(),clean.resolve("mods/old-updater.jar")));
         }
         String executable = Path.of(System.getProperty("java.home"),"bin","java.exe").toString();
         Path held = game.resolve("lock-ready");
@@ -112,10 +116,10 @@ class SelfUpdateReleaseTest {
         String log = new String(process.getInputStream().readAllBytes(),StandardCharsets.UTF_8);
         assertTrue(process.waitFor(20,TimeUnit.SECONDS)); assertEquals(0,process.exitValue(),log);
         PackManifest manifest = new PackManifest(Files.readString(out.resolve("server-mods.json")));
-        JsonObject entry = manifest.json.getAsJsonObject("updater"); assertEquals("2.0",entry.get("version").getAsString());
+        JsonObject entry = manifest.json.getAsJsonObject("updater"); assertEquals("2.1",entry.get("version").getAsString());
         assertEquals(0,manifest.mods.size());
-        Path published = out.resolve("updater/"+entry.get("sha256").getAsString()+"/AutoModUpdater-2.0.jar");
-        assertEquals(-1,Files.mismatch(release(),published)); SelfUpdate.validateJar(published,"2.0");
+        Path published = out.resolve("updater/"+entry.get("sha256").getAsString()+"/AutoModUpdater-2.1.jar");
+        assertEquals(-1,Files.mismatch(release(),published)); SelfUpdate.validateJar(published,"2.1");
     }
     static final class TlsPublication implements AutoCloseable {
         final HttpsServer server;

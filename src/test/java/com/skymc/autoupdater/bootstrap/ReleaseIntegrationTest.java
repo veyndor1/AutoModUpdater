@@ -56,7 +56,7 @@ class ReleaseIntegrationTest {
                 for (var entry = embedded.getNextEntry(); entry != null; entry = embedded.getNextEntry()) {
                     if (entry.getName().equals("META-INF/mods.toml")) {
                         String text = new String(embedded.readAllBytes(), StandardCharsets.UTF_8);
-                        assertTrue(text.contains("version=\"2.0\"")); assertTrue(text.contains("IGNORE_ALL_VERSION")); metadata = true;
+                        assertTrue(text.contains("version=\"2.1\"")); assertTrue(text.contains("IGNORE_ALL_VERSION")); metadata = true;
                     }
                     if (entry.getName().equals("com/skymc/autoupdater/AutoUpdaterMod.class")) entrypoint = true;
                 }

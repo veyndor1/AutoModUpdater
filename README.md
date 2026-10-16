@@ -68,7 +68,7 @@ Use this build only when joining **the owner's `mcmods2` pack** and following
 the owner's pack instructions. Installing it in an unrelated profile can download
 this pack's mods and replace its published configuration roots.
 
-Download the complete `AutoModUpdater-2.0.jar` from the
+Download the complete `AutoModUpdater-2.1.jar` from the
 [distribution repository](https://github.com/veyndor1/mcmods2/releases).
 Place it in your Forge profile's `mods` folder. Keep only one updater JAR there.
 Start the game and follow the update window.
@@ -91,7 +91,7 @@ project's scope; this repository does not provide a 1.12.2 build or integration.
 1. Confirm that you are using the owner's `mcmods2` pack, then install Minecraft
    1.20.1 with Forge 47.4.10 and Java 17 as instructed by the owner.
 2. Close Minecraft and wait for any previous installer helper to finish.
-3. Download `AutoModUpdater-2.0.jar` from the release selected by the pack owner.
+3. Download `AutoModUpdater-2.1.jar` from the release selected by the pack owner.
 4. Open the game profile folder and then its `mods` folder.
 5. Replace an older updater with the downloaded JAR. Do not install a bootstrap JAR
    or an embedded client JAR by itself.
@@ -109,7 +109,7 @@ are stored in `config/automodupdater.json` and are excluded from pack publicatio
 
 1. As the pack maintainer, use this repository's `1.20.1` branch and install JDK 17.
 2. Run `gradlew.bat build` on Windows, or `sh gradlew build` on other systems.
-3. Use `build/libs/AutoModUpdater-2.0.jar`. The `-release.jar` alias contains the same
+3. Use `build/libs/AutoModUpdater-2.1.jar`. The `-release.jar` alias contains the same
    complete distribution: bootstrap, post-exit helper, and embedded GUI mod.
 4. Keep `mapping-bootstrap.txt` and `mapping-client.txt` private for debugging.
 5. Obtain the existing, separately maintained pack inputs from `mcmods2`:
@@ -160,7 +160,12 @@ The generator preserves manually edited `removeMods` entries when rebuilding
 the same output manifest, and rejects conflicts with published mod downloads.
 
 The first upgrade from an older updater without self-update support requires one
-manual JAR replacement. The current player distribution version is **2.0**.
+manual JAR replacement. The current player distribution version is **2.1**.
+
+Self-updates replace the installed updater after Minecraft exits and leave only
+the new version's filename in `mods`. The original is backed up outside `mods`.
+If `removeMods` also lists the installed updater, replacement requires a verified
+newer complete updater in the `updater` section; removal alone is refused.
 
 The local `manifestUrl` setting can override the default address, but changing an
 address does not grant access to publish in `mcmods2`. This build still validates

@@ -33,7 +33,7 @@ $argv=@('-javaagent:'+(Join-Path $workspace 'build/ui-driver.jar')+'='+$game)+$a
 $argFile=Join-Path $runtime ($GameName+'.args')
 $quoted=@($argv | ForEach-Object { '"'+$_.Replace('\','\\').Replace('"','\"')+'"' })
 [IO.File]::WriteAllText($argFile,($quoted -join "`n"),[Text.UTF8Encoding]::new($false))
-$release=Join-Path $workspace 'build/libs/AutoModUpdater-2.0-release.jar'
+$release=Join-Path $workspace 'build/libs/AutoModUpdater-2.1-release.jar'
 Copy-Item -LiteralPath $release -Destination (Join-Path $game 'mods/AutoModUpdater.jar') -Force
 $cwd=Join-Path $runtime ($GameName+'-cwd'); [IO.Directory]::CreateDirectory($cwd) | Out-Null
 $start=[Diagnostics.ProcessStartInfo]::new((Get-Command java).Source.Replace('java.exe','javaw.exe'))
