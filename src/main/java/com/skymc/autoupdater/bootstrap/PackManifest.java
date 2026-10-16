@@ -7,7 +7,7 @@ import java.util.*;
 /** Accept only the Forge 1.20.1 publication contract. */
 final class PackManifest {
     final JsonObject json;
-    final JsonArray mods, configs;
+    final JsonArray mods, configs, removeMods;
     PackManifest(String text) throws IOException {
         try {
             json = JsonParser.parseString(text.replace("\uFEFF", "")).getAsJsonObject();
@@ -17,6 +17,7 @@ final class PackManifest {
                 throw new IOException("Publication does not match this updater");
             mods = json.getAsJsonArray("mods"); configs = json.getAsJsonArray("configs");
             if (mods == null || configs == null) throw new IOException("Missing publication sections");
+            removeMods = json.has("removeMods") ? json.getAsJsonArray("removeMods") : new JsonArray();
             if (json.has("updater")) SelfUpdate.validate(json.getAsJsonObject("updater"));
             Set<String> names = new HashSet<>();
             for (JsonElement element : mods) {
@@ -28,6 +29,16 @@ final class PackManifest {
                 mod.get("url").getAsString();
                 if (mod.has("sha1") && !mod.get("sha1").getAsString().matches("(?i)[a-f0-9]{40}"))
                     throw new IOException("Invalid mod SHA1");
+            }
+            for (JsonElement element : removeMods) {
+                JsonObject entry = element.getAsJsonObject();
+                String name = entry.get("fileName").getAsString();
+                SafePaths.segment(name);
+                if (!PendingInstall.validModName(name) || !names.add(name.toLowerCase(Locale.ROOT)))
+                    throw new IOException("Invalid/duplicate/conflicting removal target");
+                for (String field : List.of("name", "reason"))
+                    if (entry.has(field) && (!entry.get(field).isJsonPrimitive()
+                            || !entry.getAsJsonPrimitive(field).isString())) throw new IOException("Invalid removal " + field);
             }
             names.clear();
             for (JsonElement element : configs) {

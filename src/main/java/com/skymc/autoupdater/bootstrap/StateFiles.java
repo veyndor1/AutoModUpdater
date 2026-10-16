@@ -31,6 +31,7 @@ public final class StateFiles {
         o.addProperty("pid", ProcessHandle.current().pid());
         o.addProperty("gameDir", game.toAbsolutePath().toString());
         o.addProperty("newModsDownloaded", UpdateState.newModsDownloaded);
+        o.addProperty("modsToRemove", UpdateState.modsToRemove);
         o.addProperty("configEntriesUpdated", UpdateState.configEntriesUpdated);
         o.addProperty("errorMessage", UpdateState.errorMessage);
         o.addProperty("packId", PACK_ID);
@@ -39,6 +40,8 @@ public final class StateFiles {
         JsonArray names = new JsonArray();
         UpdateState.downloadedNames.forEach(names::add);
         o.add("downloadedNames", names);
+        JsonArray removals = new JsonArray();
+        UpdateState.removalNames.forEach(removals::add); o.add("removalNames", removals);
         return o;
     }
 }

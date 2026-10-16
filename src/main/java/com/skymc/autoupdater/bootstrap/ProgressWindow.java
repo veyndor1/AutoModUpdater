@@ -28,7 +28,11 @@ public final class ProgressWindow implements UpdateProgress {
     private JTextArea message;
     private ActionButton primary, exit, gear, themeShortcut;
     private Toggle themeToggle, motionToggle;
-    private final DefaultListModel<Entry> mods=new DefaultListModel<>(), configs=new DefaultListModel<>();
+    private final DefaultListModel<Entry> mods=new DefaultListModel<>(), configs=new DefaultListModel<>(), removals=new DefaultListModel<>();
+    private JPanel modTabs, modHeader;
+    private ActionButton modsTab, removalTab;
+    private boolean showingRemovals;
+    private long listTransition;
     private final Map<String,Entry> entries=new LinkedHashMap<>();
     private JList<Entry> modList, configList;
     private Banner banner;
@@ -129,13 +133,17 @@ public final class ProgressWindow implements UpdateProgress {
         JLabel count=new CountLabel(); header.add(count,BorderLayout.EAST);
         JList<Entry> list=new JList<>(mod ? mods : configs) {
             @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
+                Graphics2D content=graphics(g);
+                double enter=mod && !reduced ? ease(Math.min(1,(System.nanoTime()-listTransition)/220_000_000.0)) : 1;
+                content.setComposite(AlphaComposite.SrcOver.derive((float)enter)); content.translate(0,6*(1-enter));
+                super.paintComponent(content); content.dispose();
                 if(getModel().getSize()==0) {
                     Graphics2D p=graphics(g); p.setColor(color(3)); p.setFont(UiAssets.font(false,13));
-                    p.drawString(fit(p,"Liste kontrol ediliyor…",getWidth()-16),8,28); p.dispose();
+                    String empty=finished ? (mod ? "Bu yayında mod indirmesi yok." : "Bu yayında config değişikliği yok.") : "Liste kontrol ediliyor…";
+                    p.drawString(fit(p,empty,getWidth()-16),8,28); p.dispose();
                 }
             }
-            @Override public String getToolTipText(MouseEvent e) { int i=locationToIndex(e.getPoint()); return i<0 || !getCellBounds(i,i).contains(e.getPoint()) ? null : getModel().getElementAt(i).name; }
+            @Override public String getToolTipText(MouseEvent e) { int i=locationToIndex(e.getPoint()); return i<0 || !getCellBounds(i,i).contains(e.getPoint()) ? null : getModel().getElementAt(i).toString(); }
         };
         list.setName(mod ? "mods" : "configs"); list.setFixedCellHeight(66); list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer((owner,item,index,selected,focus) -> new Row(item,selected,focus)); ToolTipManager.sharedInstance().registerComponent(list);
@@ -148,8 +156,28 @@ public final class ProgressWindow implements UpdateProgress {
             @Override protected void paintTrack(Graphics g,JComponent c,Rectangle r) { g.setColor(color(1)); g.fillRect(r.x,r.y,r.width,r.height); }
             @Override protected void paintThumb(Graphics g,JComponent c,Rectangle r) { g.setColor(blend(color(1),color(3),0.45)); g.fillRoundRect(r.x+2,r.y,r.width-4,r.height,4,4); }
         });
-        p.add(header,BorderLayout.NORTH); p.add(scroll,BorderLayout.CENTER);
+        if(mod) {
+            modHeader=header;
+            JPanel headingArea=panel(new BorderLayout(0,8)); headingArea.add(header,BorderLayout.NORTH);
+            modTabs=panel(new GridLayout(1,2,8,0));
+            modsTab=new ActionButton("Gelenler",false); removalTab=new ActionButton("Ayrılanlar",false);
+            modsTab.setName("incoming-mods"); removalTab.setName("removed-mods");
+            modsTab.addActionListener(e -> showRemovals(false)); removalTab.addActionListener(e -> showRemovals(true));
+            modTabs.add(modsTab); modTabs.add(removalTab); modTabs.setVisible(false);
+            headingArea.add(modTabs,BorderLayout.SOUTH); p.add(headingArea,BorderLayout.NORTH);
+        } else p.add(header,BorderLayout.NORTH);
+        p.add(scroll,BorderLayout.CENTER);
         if(mod) { modList=list; modCount=count; } else { configList=list; configCount=count; } return p;
+    }
+    private DefaultListModel<Entry> model(Kind kind) { return kind==Kind.MOD ? mods : kind==Kind.CONFIG ? configs : removals; }
+    private void showRemovals(boolean show) {
+        if(showingRemovals!=show) listTransition=System.nanoTime();
+        showingRemovals=show; modList.setModel(show ? removals : mods); modList.setFixedCellHeight(show ? 96 : 66);
+        modHeader.setVisible(removals.isEmpty());
+        modList.getAccessibleContext().setAccessibleName(show ? "Zorunlu kaldırılacak modlar ve nedenleri" : "Mod indirmeleri");
+        modsTab.getAccessibleContext().setAccessibleDescription(show ? "Seçili değil" : "Seçili");
+        removalTab.getAccessibleContext().setAccessibleDescription(show ? "Seçili" : "Seçili değil");
+        updateCounts(); responsive(); modList.repaint();
     }
     private JButton emptyButton() { JButton b=new JButton(); b.setPreferredSize(new Dimension(0,0)); return b; }
     private void responsive() {
@@ -158,6 +186,7 @@ public final class ProgressWindow implements UpdateProgress {
         if(layout.getRows()!=rows) { layout.setRows(rows); layout.setColumns(stacked ? 1 : 2); layout.setVgap(stacked ? 16 : 0); lists.revalidate(); }
         banner.setVisible(frame.getHeight()>=620);
         boolean compact=frame.getHeight()<620;
+        words.setVisible(!(compact && !removals.isEmpty()));
         root.setBorder(compact ? new EmptyBorder(14,20,14,20) : new EmptyBorder(20,26,18,26));
         ((BorderLayout)root.getLayout()).setVgap(compact ? 12 : 18);
         ((BorderLayout)top.getLayout()).setVgap(compact ? 10 : 18);
@@ -169,7 +198,7 @@ public final class ProgressWindow implements UpdateProgress {
         title.setFont(UiAssets.font(true,compact ? 22 : 32));
         title.setForeground(compact ? color(2) : Color.WHITE);
         subtitle.setForeground(compact ? color(3) : new Color(0xDBE6F7));
-        banner.setPreferredSize(new Dimension(850,Math.max(150,Math.min(250,frame.getHeight()-520)))); root.revalidate();
+        banner.setPreferredSize(new Dimension(850,Math.max(150,Math.min(removals.isEmpty() ? 250 : 180,frame.getHeight()-520)))); root.revalidate();
         overlay.setBounds(0,0,frame.getLayeredPane().getWidth(),frame.getLayeredPane().getHeight());
         if(completionOverlay!=null) completionOverlay.setBounds(overlay.getBounds());
     }
@@ -213,33 +242,43 @@ public final class ProgressWindow implements UpdateProgress {
     public void begin() { later(() -> {
         resetChoice(); completionAnnounced=false; completionStart=0; completionOverlay.setVisible(false);
         summary.getAccessibleContext().setAccessibleDescription(null);
-        entries.clear(); mods.clear(); configs.clear(); failed=finished=false; progress=progressTarget=reveal=0;
+        entries.clear(); mods.clear(); configs.clear(); removals.clear(); modTabs.setVisible(false); showRemovals(false);
+        failed=finished=false; progress=progressTarget=reveal=0;
         title.setText("Oyuna hazırlanıyor"); subtitle.setText("Modlar ve configler kontrol ediliyor."); message.setText("Dosyalar doğrulandıktan sonra oyun açılacak.");
         primary.setVisible(false); exit.setVisible(false); frame.getRootPane().setDefaultButton(null); updateCounts(); applyTheme();
     }); }
     @Override public void inventory(Kind kind,String id,String name) { later(() -> {
-        String key=kind+":"+id; if(entries.containsKey(key)) return; Entry item=new Entry(name); entries.put(key,item);
-        (kind==Kind.MOD ? mods : configs).addElement(item); updateCounts();
+        String key=kind+":"+id; if(entries.containsKey(key)) return; Entry item=new Entry(name); item.id=id; item.removal=kind==Kind.REMOVAL; entries.put(key,item);
+        model(kind).addElement(item);
+        if(kind==Kind.REMOVAL) { modTabs.setVisible(true); showRemovals(true); }
+        updateCounts();
     }); }
+    @Override public void removal(String id,String name,String reason) {
+        inventory(Kind.REMOVAL,id,name);
+        later(() -> { Entry entry=entries.get(Kind.REMOVAL+":"+id); if(entry!=null) entry.reason=reason; });
+    }
     @Override public void item(Kind kind,String id,String name,Phase phase,long bytes,long total) { later(() -> {
-        Entry item=entries.get(kind+":"+id); if(item==null) return; item.phase=phase; item.bytes=bytes; item.total=total;
-        DefaultListModel<Entry> model=kind==Kind.MOD ? mods : configs; int index=model.indexOf(item); model.set(index,item);
-        JList<Entry> list=kind==Kind.MOD ? modList : configList;
+        Entry item=entries.get(kind+":"+id); if(item==null) return; if(item.phase!=phase) item.phaseStart=System.nanoTime(); item.phase=phase; item.bytes=bytes; item.total=total;
+        DefaultListModel<Entry> model=model(kind); int index=model.indexOf(item); model.set(index,item);
+        JList<Entry> list=kind==Kind.CONFIG ? configList : modList;
         if(phase==Phase.DOWNLOADING && list.getLastVisibleIndex()>=model.size()-2) list.ensureIndexIsVisible(index);
         updateCounts();
     }); }
     @Override public void status(String text) { later(() -> { if(!finished) message.setText(text); }); }
     private void updateCounts() {
-        long m=done(mods),c=done(configs); modCount.setText(m+" / "+mods.size()); configCount.setText(c+" / "+configs.size()); int total=entries.size();
+        long m=done(mods),c=done(configs),r=done(removals);
+        modCount.setText(showingRemovals ? r+" / "+removals.size() : m+" / "+mods.size()); configCount.setText(c+" / "+configs.size()); int total=entries.size();
+        modsTab.setText("Gelenler · "+mods.size()); removalTab.setText("Ayrılanlar · "+removals.size());
         double partial=entries.values().stream().filter(e -> e.phase==Phase.DOWNLOADING && e.total>0).mapToDouble(e -> Math.min(0.9,e.bytes/(double)e.total*0.9)).sum();
-        if(!finished) progressTarget=total==0 ? 0 : Math.min(0.98,(m+c+partial)/(double)total*0.98);
-        summary.setText(total==0 ? "Yayın bilgisi alınıyor…" : (m+c)+" / "+total+" dosya hazır");
+        if(!finished) progressTarget=total==0 ? 0 : Math.min(0.98,(m+c+r+partial)/(double)total*0.98);
+        summary.setText(total==0 ? "Yayın bilgisi alınıyor…" : (m+c+r)+" / "+total+" işlem hazır");
         meter.getAccessibleContext().setAccessibleDescription(summary.getText());
     }
-    private long done(DefaultListModel<Entry> model) { return Collections.list(model.elements()).stream().filter(e -> e.phase==Phase.CURRENT || e.phase==Phase.READY).count(); }
+    private long done(DefaultListModel<Entry> model) { return Collections.list(model.elements()).stream().filter(e -> e.phase==Phase.CURRENT || e.phase==Phase.READY || e.phase==Phase.REMOVE_READY || e.phase==Phase.ABSENT).count(); }
     public Choice awaitSuccess(UpdateReport report,boolean pending,boolean automatic) {
-        return await(false,true,"Her şey hazır",report.mods()+" mod · "+report.configs()+" config güncellendi.",pending ?
-                (automatic ? "Tamam'a bastığında Minecraft güncel paketle yeniden açılacak." : "Yeni modlar için yeniden açılış gerekiyor. Tamam oyunu kapatır; ardından Launcher'dan tekrar açın.") : "Tamam'a bastığında oyun açılışına devam edilecek.",report.changed());
+        return await(false,true,"Her şey hazır",report.removals()>0 ? report.mods()+" mod hazır · "+report.removals()+" mod kaldırılacak · "+report.configs()+" config" : report.mods()+" mod · "+report.configs()+" config güncellendi.",pending ?
+                (report.removals()>0 ? "Ayrılan modlar oyun kapandığında yedeğe taşınacak. " : "")+
+                (automatic ? "Tamam ile güncel paket yeniden açılacak." : "Tamam oyunu kapatır; ardından Launcher'dan tekrar açın.") : "Tamam'a bastığında oyun açılışına devam edilecek.",report.changed());
     }
     public Choice awaitError(String error,boolean retry) { return await(true,retry,"Güncelleme tamamlanamadı","Dosyaların güvenli kopyaları korundu.",friendly(error),false); }
     private static String friendly(String error) {
@@ -274,7 +313,7 @@ public final class ProgressWindow implements UpdateProgress {
     private void announceCompletion() {
         completionAnnounced=true; completionStart=System.nanoTime();
         completionOverlay.setBounds(overlay.getBounds()); completionOverlay.setVisible(true); completionOverlay.repaint();
-        summary.setText("İndirmeler tamamlandı · "+entries.size()+" dosya hazır");
+        summary.setText("Paket hazır · "+entries.size()+" işlem doğrulandı");
         summary.getAccessibleContext().setAccessibleDescription("Tüm mod ve config işlemleri başarıyla tamamlandı.");
         try { completionCue.run(); } catch(RuntimeException ignored) { /* Visual feedback still works. */ }
     }
@@ -316,7 +355,7 @@ public final class ProgressWindow implements UpdateProgress {
             entry.displayProgress+=(desired-entry.displayProgress)*(reduced ? 1 : 1-Math.exp(-dt*10));
         }
         percentage.setText(entries.isEmpty() ? "" : failed ? "Duraklatıldı" : Math.round(progress*100)+"%");
-        for(ActionButton b:List.of(primary,exit,gear,themeShortcut)) {
+        for(ActionButton b:List.of(primary,exit,gear,themeShortcut,modsTab,removalTab)) {
             b.hover+=( (b.getModel().isRollover() ? 1 : 0)-b.hover)*(reduced ? 1 : 1-Math.exp(-dt*25));
             b.press+=((b.getModel().isPressed() ? 1 : 0)-b.press)*(reduced ? 1 : 1-Math.exp(-dt*30));
         }
@@ -330,7 +369,7 @@ public final class ProgressWindow implements UpdateProgress {
         Rectangle b=popoverBounds(); overlay.getComponent(0).setBounds(b.x+18,b.y+15,b.width-36,23);
         themeToggle.setBounds(b.x+16,b.y+48,b.width-32,35); motionToggle.setBounds(b.x+16,b.y+92,b.width-32,35);
         if(frame.isShowing() && frame.getState()!=Frame.ICONIFIED) {
-            banner.repaint(); meter.repaint(); primary.repaint(); exit.repaint(); gear.repaint(); themeShortcut.repaint();
+            banner.repaint(); meter.repaint(); primary.repaint(); exit.repaint(); gear.repaint(); themeShortcut.repaint(); modsTab.repaint(); removalTab.repaint();
             modList.repaint(); configList.repaint(); if(overlay.isVisible()) overlay.repaint();
         }
     }
@@ -349,9 +388,9 @@ public final class ProgressWindow implements UpdateProgress {
     private void later(Runnable r) { if(!closed) SwingUtilities.invokeLater(() -> { if(!closed) r.run(); }); }
     private static void onEdt(Runnable r) throws Exception { if(SwingUtilities.isEventDispatchThread()) r.run(); else SwingUtilities.invokeAndWait(r); }
     private static final class Entry {
-        final String name; Phase phase=Phase.WAITING; long bytes,total=-1; double displayProgress;
+        final String name; String id="",reason=""; boolean removal; Phase phase=Phase.WAITING; long bytes,total=-1,phaseStart; double displayProgress;
         Entry(String name) { this.name=name; }
-        @Override public String toString() { return name+", "+phase.label; }
+        @Override public String toString() { return name+", "+phase.label+(removal ? ", "+id+", "+reason : ""); }
     }
     private class Surface extends JPanel {
         Surface(LayoutManager layout) { super(layout); setOpaque(false); }
@@ -472,6 +511,7 @@ public final class ProgressWindow implements UpdateProgress {
         Row(Entry item,boolean selected,boolean focused) { this.item=item; this.selected=selected; this.focused=focused; setOpaque(false); getAccessibleContext().setAccessibleName(item.toString()); }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D p=graphics(g); int w=getWidth();
+            if(item.removal) { paintDeparture(p,w); p.dispose(); return; }
             boolean ready=item.phase==Phase.CURRENT || item.phase==Phase.READY;
             boolean active=item.phase==Phase.DOWNLOADING || item.phase==Phase.VERIFYING || item.phase==Phase.CHECKING;
             Color accent=color(item.phase==Phase.FAILED ? 6 : ready ? 5 : 4);
@@ -494,6 +534,25 @@ public final class ProgressWindow implements UpdateProgress {
                 p.setColor(accent); p.fillRoundRect(48,54,(int)((w-60)*item.displayProgress),3,3,3);
             } p.dispose();
         }
+        private void paintDeparture(Graphics2D p,int w) {
+            boolean armed=item.phase==Phase.REMOVE_READY, absent=item.phase==Phase.ABSENT;
+            Color accent=color(item.phase==Phase.FAILED ? 6 : 4);
+            p.setColor(blend(color(1),accent,selected ? 0.12 : 0.045)); p.fillRoundRect(0,2,w,90,12,12);
+            if(focused) { p.setColor(color(4)); p.drawRoundRect(1,3,w-3,88,12,12); }
+            double travel=armed ? (reduced ? 1 : ease(Math.min(1,(System.nanoTime()-item.phaseStart)/700_000_000.0))) : 0;
+            p.setStroke(new BasicStroke(1.5f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
+            p.setColor(blend(color(1),accent,0.28)); p.drawLine(17,27,17,67); p.drawLine(17,67,34,67);
+            p.setColor(accent); p.drawLine(17,27,17,27+(int)(40*travel));
+            // The small module follows a path into its retained backup, leaving the name readable.
+            double y=27+40*travel, x=17+Math.max(0,(travel-0.72)/0.28)*15;
+            p.setColor(blend(color(1),accent,0.18)); p.fill(new RoundRectangle2D.Double(x-5,y-5,10,10,3,3));
+            p.setColor(accent); p.draw(new RoundRectangle2D.Double(x-5,y-5,10,10,3,3));
+            p.setFont(UiAssets.font(true,14)); p.setColor(color(2)); p.drawString(fit(p,item.name,w-60),48,23);
+            p.setFont(UiAssets.font(false,12)); p.setColor(color(3)); p.drawString(fit(p,item.id,w-60),48,41);
+            p.setFont(UiAssets.font(false,13)); p.drawString(fit(p,item.reason,w-60),48,60);
+            String status=armed ? "Kaldırılacak · yedeği korunacak" : absent ? "Zaten kaldırılmış" : item.phase==Phase.FAILED ? "Kaldırma hazırlanamadı" : "Kaldırma kontrol ediliyor";
+            p.setFont(UiAssets.font(true,12)); p.setColor(color(item.phase==Phase.FAILED ? 6 : absent ? 5 : 4)); p.drawString(fit(p,status,w-60),48,81);
+        }
     }
     private static String fit(Graphics2D g,String text,int width) { FontMetrics f=g.getFontMetrics(); if(f.stringWidth(text)<=width) return text; int end=text.length(); while(end>0 && f.stringWidth(text.substring(0,end)+"…")>width) end--; return text.substring(0,end)+"…"; }
     private static String bytes(long v) { return v<1024*1024 ? String.format(Locale.ROOT,"%.0f KB",v/1024.0) : String.format(Locale.ROOT,"%.1f MB",v/(1024.0*1024)); }
@@ -510,6 +569,10 @@ public final class ProgressWindow implements UpdateProgress {
             if(confirmed) fill=blend(fill,color(5),reduced ? 1 : ease(Math.min(1,elapsed/0.45)));
             else if(!isEnabled()) fill=blend(fill,color(0),0.45);
             p.setColor(fill); p.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+            if((this==removalTab && showingRemovals) || (this==modsTab && !showingRemovals)) {
+                p.setColor(blend(color(1),color(4),0.12)); p.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                p.setColor(color(4)); p.fillRoundRect(getWidth()/2-18,getHeight()-4,36,3,3,3);
+            }
             if(confirmed && !reduced) {
                 double t=Math.min(1,(System.nanoTime()-choiceStart)/(ACTION_CONFIRM_MS*1_000_000.0));
                 Graphics2D pulse=(Graphics2D)p.create(); pulse.clip(new RoundRectangle2D.Double(0,0,getWidth(),getHeight(),12,12));

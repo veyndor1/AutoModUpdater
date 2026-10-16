@@ -39,4 +39,10 @@ Run-Generator
 if ([IO.File]::ReadAllText($manifestPath) -ne $before) { throw 'Publication is not deterministic' }
 $bytes = [IO.File]::ReadAllBytes($manifestPath)
 if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) { throw 'Manifest must be BOM-free UTF8' }
+$manifest = Get-Content -Raw -LiteralPath $manifestPath -Encoding UTF8 | ConvertFrom-Json
+$manifest.removeMods = @(@{fileName='old.jar';name='Old mod';reason='Incompatible'})
+[IO.File]::WriteAllText($manifestPath,($manifest | ConvertTo-Json -Depth 20),[Text.UTF8Encoding]::new($false))
+Run-Generator
+$manifest = Get-Content -Raw -LiteralPath $manifestPath -Encoding UTF8 | ConvertFrom-Json
+if (@($manifest.removeMods).Count -ne 1 -or $manifest.removeMods[0].fileName -ne 'old.jar' -or $manifest.removeMods[0].reason -ne 'Incompatible') { throw 'Manual removeMods was lost during regeneration' }
 Write-Output 'Manifest producer: v2 identity, mods, root config, Unicode/hidden/empty directories, protected updater settings, deterministic ZIP/SHA256 and BOM-free UTF8 passed.'

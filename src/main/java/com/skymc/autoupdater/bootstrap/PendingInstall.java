@@ -4,11 +4,9 @@ import com.google.gson.*;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.nio.file.*;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
-/** Only completed, hashed, explicitly recorded downloads may enter mods/. */
+/** Verified downloads and exact, hashed removals share the recoverable install journal. */
 public final class PendingInstall {
     static Path journal(Path game) { return StateFiles.root(game).resolve("pending.json"); }
     public static boolean validModName(String name) {
@@ -23,19 +21,41 @@ public final class PendingInstall {
         recordBatch(game, Map.of(name, hash));
     }
     public static void recordBatch(Path game, Map<String,String> hashes) throws IOException {
+        recordBatch(game, hashes, Map.of());
+    }
+    static void recordBatch(Path game, Map<String,String> hashes, Map<String,String> removals) throws IOException {
         for (var entry : hashes.entrySet()) {
             String name = entry.getKey(), hash = entry.getValue();
             SafePaths.segment(name);
             if (!validModName(name) || !hash.matches("[a-fA-F0-9]{40}")) throw new IOException("Invalid staged entry");
         }
+        for (var entry : removals.entrySet()) {
+            SafePaths.segment(entry.getKey());
+            if (!validModName(entry.getKey()) || !entry.getValue().matches("[a-fA-F0-9]{40}")
+                    || hashes.keySet().stream().anyMatch(n -> n.equalsIgnoreCase(entry.getKey())))
+                throw new IOException("Invalid removal entry");
+        }
         locked(game, () -> {
             JsonObject entries = entries(game);
             hashes.forEach(entries::addProperty);
+            for (var removal : removals.entrySet()) {
+                if (entries.has(removal.getKey())) {
+                    JsonElement old = entries.get(removal.getKey());
+                    if (!old.isJsonObject() || !old.getAsJsonObject().get("sha1").getAsString().equalsIgnoreCase(removal.getValue()))
+                        throw new IOException("Conflicting pending mod operation");
+                    continue;
+                }
+                JsonObject entry = new JsonObject(); entry.addProperty("sha1", removal.getValue());
+                entry.addProperty("backupId", UUID.randomUUID().toString()); entries.add(removal.getKey(), entry);
+            }
             StateFiles.write(journal(game), entries);
             return 0;
         });
     }
     public static int install(Path game) throws IOException {
+        return install(game, true);
+    }
+    static int install(Path game, boolean allowRemovals) throws IOException {
         return locked(game, () -> {
             JsonObject entries = entries(game);
             Path staging = StateFiles.root(game).resolve("staging");
@@ -47,6 +67,31 @@ public final class PendingInstall {
             while (it.hasNext()) {
                 Map.Entry<String, JsonElement> entry = it.next();
                 String name = entry.getKey();
+                if (entry.getValue().isJsonObject()) {
+                    if (!allowRemovals) continue; // Removal must wait until the parent JVM has exited.
+                    SafePaths.segment(name);
+                    JsonObject removal = entry.getValue().getAsJsonObject();
+                    String hash = removal.get("sha1").getAsString(), id = removal.get("backupId").getAsString();
+                    if (!validModName(name) || !hash.matches("(?i)[a-f0-9]{40}") || !id.matches("[a-f0-9-]{36}"))
+                        throw new IOException("Invalid removal journal");
+                    UUID.fromString(id);
+                    Path target = SafePaths.resolve(mods, name);
+                    try {
+                        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                            if (!Files.isRegularFile(target) || SelfUpdate.isDistribution(target)
+                                    || !ModDownloader.sha1Of(target.toFile()).equalsIgnoreCase(hash))
+                                throw new IOException("Removal target changed: " + name);
+                            Path backup = SafePaths.resolve(StateFiles.root(game), "removed-mods/" + id + "/" + name);
+                            Files.createDirectories(backup.getParent());
+                            Files.move(target, backup);
+                            moved++;
+                        }
+                        it.remove();
+                    } catch (IOException blocked) {
+                        System.out.println("[AutoModUpdater] Kaldirma bekliyor (" + name + "): " + blocked.getClass().getSimpleName());
+                    }
+                    continue;
+                }
                 if (!validModName(name) || !entry.getValue().isJsonPrimitive()) continue;
                 String hash = entry.getValue().getAsString();
                 if (!hash.matches("[a-fA-F0-9]{40}")) continue;

@@ -30,7 +30,7 @@ public final class InstallerHelper {
                     catch (TimeoutException ignored) {
                         if (Files.exists(installRequest)) {
                             JsonObject request = StateFiles.read(installRequest);
-                            if (request.get("sessionId").equals(payload.get("sessionId"))) PendingInstall.install(game);
+                            if (request.get("sessionId").equals(payload.get("sessionId"))) PendingInstall.install(game, false);
                             Files.deleteIfExists(installRequest);
                         }
                     }

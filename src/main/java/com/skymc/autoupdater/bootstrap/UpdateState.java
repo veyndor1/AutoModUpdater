@@ -15,6 +15,8 @@ public class UpdateState {
 
     /** Staged mod JAR count; only this counter triggers the restart prompt. */
     public static int newModsDownloaded = 0;
+    public static int modsToRemove = 0;
+    public static List<String> removalNames = new ArrayList<>();
 
     /** Published config roots changed during this session. */
     public static int configEntriesUpdated = 0;

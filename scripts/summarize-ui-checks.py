@@ -14,7 +14,7 @@ parser.add_argument('--expected-tests',type=int,default=47)
 options=parser.parse_args()
 
 root = Path(__file__).resolve().parent.parent
-release = root / 'build/libs/AutoModUpdater-1-release.jar'
+release = root / 'build/libs/AutoModUpdater-2.0-release.jar'
 totals = dict(tests=0, failures=0, errors=0, skipped=0)
 for folder in ['test', 'verifyRelease']:
     reports = list((root / 'build/test-results' / folder).glob('TEST-*.xml'))

@@ -184,10 +184,14 @@ final class ConfigInstaller {
         }
     }
     void arm(Prepared prepared, Map<String,String> requiredMods) throws IOException {
+        arm(prepared, requiredMods, Map.of());
+    }
+    void arm(Prepared prepared, Map<String,String> requiredMods, Map<String,String> requiredRemovals) throws IOException {
         if (prepared.entries.size() == 0) return;
         JsonObject tx = new JsonObject(); tx.addProperty("id", prepared.id); tx.addProperty("packId", StateFiles.PACK_ID);
-        tx.addProperty("phase", "prepared"); tx.addProperty("deferred", !requiredMods.isEmpty()); tx.add("entries", prepared.entries);
+        tx.addProperty("phase", "prepared"); tx.addProperty("deferred", !requiredMods.isEmpty() || !requiredRemovals.isEmpty()); tx.add("entries", prepared.entries);
         JsonObject mods = new JsonObject(); requiredMods.forEach(mods::addProperty); tx.add("requiredMods", mods);
+        JsonObject removals = new JsonObject(); requiredRemovals.forEach(removals::addProperty); tx.add("requiredRemovals", removals);
         StateFiles.write(journal, tx);
     }
     int recover(boolean allowDeferred) throws IOException {
@@ -204,7 +208,12 @@ final class ConfigInstaller {
                     missing.put(mod.getKey(), mod.getValue().getAsString());
             }
             // The config journal is written before the mod journal; recover a crash between them.
-            if (!missing.isEmpty()) PendingInstall.recordBatch(game, missing);
+            Map<String,String> removals = new LinkedHashMap<>();
+            if (tx.has("requiredRemovals")) for (var entry : tx.getAsJsonObject("requiredRemovals").entrySet()) {
+                if (Files.exists(SafePaths.resolve(game.resolve("mods"), entry.getKey()), LinkOption.NOFOLLOW_LINKS))
+                    removals.put(entry.getKey(), entry.getValue().getAsString());
+            }
+            if (!missing.isEmpty() || !removals.isEmpty()) PendingInstall.recordBatch(game, missing, removals);
             if (PendingInstall.hasPending(game)) return 0;
         }
         return commit(tx);
@@ -225,6 +234,11 @@ final class ConfigInstaller {
                 SafePaths.segment(mod.getKey());
                 if (!PendingInstall.validModName(mod.getKey()) || !mod.getValue().getAsString().matches("(?i)[a-f0-9]{40}"))
                     throw new IOException("Invalid config/mod dependency");
+            }
+            if (tx.has("requiredRemovals")) for (var entry : tx.getAsJsonObject("requiredRemovals").entrySet()) {
+                SafePaths.segment(entry.getKey());
+                if (!PendingInstall.validModName(entry.getKey()) || !entry.getValue().getAsString().matches("(?i)[a-f0-9]{40}"))
+                    throw new IOException("Invalid config/removal dependency");
             }
             Set<String> names = new HashSet<>();
             for (JsonElement item : tx.getAsJsonArray("entries")) {

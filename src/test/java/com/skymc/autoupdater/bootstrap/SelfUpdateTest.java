@@ -20,7 +20,7 @@ class SelfUpdateTest {
         game = temp.resolve("Ömer profile"); Files.createDirectories(game.resolve("mods"));
         installed = game.resolve("mods/custom-old-name.jar"); jar(installed, "1");
         originalHash = ConfigInstaller.sha256(installed);
-        next = temp.resolve("next.jar"); jar(next, "2"); publication = publication(next, "2");
+        next = temp.resolve("next.jar"); jar(next, "3"); publication = publication(next, "3");
         Files.createDirectories(game.resolve("config"));
         Files.writeString(game.resolve("config/automodupdater.json"), "{\"theme\":\"light\",\"autoRestart\":false,\"custom\":42}");
     }
@@ -53,12 +53,12 @@ class SelfUpdateTest {
                 (url, target, progress) -> Files.copy(next, target));
     }
     void arm() throws Exception { SelfUpdate.arm(game, prepare()); }
-    Path target() { return game.resolve("mods/AutoModUpdater-2.jar"); }
+    Path target() { return game.resolve("mods/AutoModUpdater-3.jar"); }
     @Test void numericVersionsAreOrderedAndDowngradesNeverDownload() throws Exception {
-        assertEquals("1", SelfUpdate.version());
+        assertEquals("2.0", SelfUpdate.version());
         assertTrue(SelfUpdate.compare("10", "2") > 0); assertTrue(SelfUpdate.compare("1.10", "1.9") > 0);
         assertEquals(0, SelfUpdate.compare("1.0", "1"));
-        for (String version : List.of("0", "1", "1.0")) {
+        for (String version : List.of("0", "1", "1.0", "2.0")) {
             publication.addProperty("version", version); publication.addProperty("fileName", "AutoModUpdater-" + version + ".jar");
             assertNull(SelfUpdate.prepare(game, publication, UpdateProgress.NONE, (u,t,p) -> fail("No download for older/equal version")));
         }
@@ -93,9 +93,9 @@ class SelfUpdateTest {
         try (var files = Files.walk(StateFiles.root(game))) { assertFalse(files.anyMatch(p -> p.toString().endsWith(".part"))); }
     }
     @Test void bootstrapOnlyAndWrongEmbeddedVersionCannotBeInstalled() throws Exception {
-        Files.writeString(next, "not a full jar"); publication = publication(next,"2");
+        Files.writeString(next, "not a full jar"); publication = publication(next,"3");
         assertThrows(IOException.class, this::prepare);
-        jar(next,"3"); publication = publication(next,"2"); assertThrows(IOException.class, this::prepare);
+        jar(next,"4"); publication = publication(next,"3"); assertThrows(IOException.class, this::prepare);
         assertFalse(SelfUpdate.hasPending(game)); assertEquals(originalHash,ConfigInstaller.sha256(installed));
     }
     @Test void invalidCompatibilityUnsafeNamesAndInsecureUrlsAreRejected() throws Exception {
@@ -124,9 +124,9 @@ class SelfUpdateTest {
             if (to.equals(target())) throw new AssertionError("Simulated abrupt process loss");
             Files.move(from,to,StandardCopyOption.REPLACE_EXISTING);
         }));
-        assertTrue(SelfUpdate.hasPending(game)); SelfUpdate.validateJar(installed,"2");
+        assertTrue(SelfUpdate.hasPending(game)); SelfUpdate.validateJar(installed,"3");
         SelfUpdate.install(game); assertFalse(Files.exists(installed)); assertFalse(SelfUpdate.hasPending(game));
-        SelfUpdate.validateJar(target(),"2");
+        SelfUpdate.validateJar(target(),"3");
     }
     @Test void crashAfterFinalRenameBeforeJournalCleanupIsIdempotent() throws Exception {
         arm();
@@ -134,7 +134,7 @@ class SelfUpdateTest {
             Files.move(from,to,StandardCopyOption.REPLACE_EXISTING);
             if (to.equals(target())) throw new AssertionError("Simulated abrupt process loss");
         }));
-        SelfUpdate.install(game); assertFalse(SelfUpdate.hasPending(game)); SelfUpdate.validateJar(target(),"2");
+        SelfUpdate.install(game); assertFalse(SelfUpdate.hasPending(game)); SelfUpdate.validateJar(target(),"3");
     }
     @Test void changedOriginalCollisionAndTamperedStagingNeverOverwriteUserFiles() throws Exception {
         Files.writeString(target(), "user file"); assertThrows(IOException.class,this::prepare);

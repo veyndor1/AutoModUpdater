@@ -80,6 +80,15 @@ if ($Out) {
     }
 }
 [IO.Directory]::CreateDirectory($publication) | Out-Null
+$manifestTarget = if ($Out) { $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out) } else { Join-Path $publication 'server-mods.json' }
+$removeMods = @()
+if (Test-Path -LiteralPath $manifestTarget -PathType Leaf) {
+    $previous = [IO.File]::ReadAllText($manifestTarget) | ConvertFrom-Json
+    if ($previous.PSObject.Properties.Name -contains 'removeMods') {
+        if ($null -eq $previous.removeMods -or $previous.removeMods -isnot [Array]) { throw 'removeMods must be an array.' }
+        $removeMods = @($previous.removeMods)
+    }
+}
 $mods = @(); $configs = @()
 foreach ($item in Get-ChildItem -LiteralPath $modsRoot -Force -File -Filter '*.jar' | Sort-Object Name) {
     Assert-Regular $item
@@ -144,6 +153,17 @@ foreach ($item in Get-ChildItem -LiteralPath $configsRoot -Force | Sort-Object N
     } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::SetAttributes($temporary,[IO.FileAttributes]::Normal); [IO.File]::Delete($temporary) } }
 }
 $manifest = [ordered]@{schemaVersion=2;minecraftVersion='1.20.1';packId='mc-mods2-1.20.1';mods=@($mods);configs=@($configs)}
+$seenRemoval = @{}
+foreach ($entry in $removeMods) {
+    Assert-Name $entry.fileName
+    if (-not $entry.fileName.EndsWith('.jar',[StringComparison]::OrdinalIgnoreCase) -or $seenRemoval.ContainsKey($entry.fileName) -or
+        @($mods | Where-Object { $_.fileName -ieq $entry.fileName }).Count -gt 0) { throw 'Invalid, duplicate or conflicting removeMods target.' }
+    foreach ($field in @('name','reason')) {
+        if ($entry.PSObject.Properties.Name -contains $field -and $entry.$field -isnot [string]) { throw "Invalid removal $field" }
+    }
+    $seenRemoval[$entry.fileName] = $true
+}
+$manifest.removeMods = @($removeMods)
 if ($UpdaterJar) {
     $updater = Get-Item -LiteralPath $UpdaterJar; Assert-Regular $updater
     if ($updater.PSIsContainer -or $updater.Length -le 0 -or $updater.Length -gt 128MB) { throw 'Invalid updater JAR size.' }

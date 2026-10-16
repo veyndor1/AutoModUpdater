@@ -16,6 +16,7 @@ public final class ModDownloader {
     static UpdateReport download(File gameFile, File modsDir, UpdateProgress window) {
         UpdateState.gameDir = gameFile;
         UpdateState.newModsDownloaded = 0; UpdateState.configEntriesUpdated = 0;
+        UpdateState.modsToRemove = 0; UpdateState.removalNames = new ArrayList<>();
         UpdateState.errorMessage = "";
         UpdateState.downloadedNames = new ArrayList<>();
         UpdateProgress.Kind activeKind = null; String activeId = "", activeName = "";
@@ -25,11 +26,24 @@ public final class ModDownloader {
             SafePaths.checkLinks(StateFiles.root(game)); SafePaths.checkLinks(modsDir.toPath());
             PackManifest manifest = new PackManifest(httpGetString(Config.manifestUrl));
             SelfUpdate.protectModTargets(game, manifest.mods);
+            SelfUpdate.protectModTargets(game, manifest.removeMods);
             if (manifest.json.has("updater") && !new URL(Config.manifestUrl).getProtocol().equals("https"))
                 throw new IOException("Updater publication requires HTTPS");
             ConfigInstaller configs = new ConfigInstaller(game, window);
             Path staging = stagingDir(gameFile).toPath(); Files.createDirectories(staging);
             Map<String,String> ready = new LinkedHashMap<>(); List<String> names = new ArrayList<>();
+            Map<String,String> removals = new LinkedHashMap<>(); List<String> removalNames = new ArrayList<>();
+            for (JsonElement value : manifest.removeMods) {
+                JsonObject entry = value.getAsJsonObject(); String name = entry.get("fileName").getAsString();
+                String display = entry.has("name") ? entry.get("name").getAsString() : name;
+                window.removal(name, display, entry.has("reason") ? entry.get("reason").getAsString() : "Paket düzeni için zorunlu kaldırma");
+                Path target = SafePaths.resolve(modsDir.toPath(), name);
+                if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                    if (!Files.isRegularFile(target) || SelfUpdate.isDistribution(target)) throw new IOException("Unsafe removal target: " + name);
+                    removals.put(name, sha1Of(target.toFile())); removalNames.add(display);
+                    window.item(UpdateProgress.Kind.REMOVAL, name, display, UpdateProgress.Phase.CHECKING, 0, -1);
+                } else window.item(UpdateProgress.Kind.REMOVAL, name, display, UpdateProgress.Phase.ABSENT, 0, -1);
+            }
             for (JsonElement value : manifest.mods) {
                 JsonObject entry = value.getAsJsonObject();
                 window.inventory(UpdateProgress.Kind.MOD, entry.get("fileName").getAsString(),
@@ -73,16 +87,18 @@ public final class ModDownloader {
             activeKind = null;
             SelfUpdate.Prepared updater = SelfUpdate.prepare(game, manifest.json.getAsJsonObject("updater"), window);
             ConfigInstaller.Prepared prepared = configs.prepare(manifest.configs);
-            configs.arm(prepared, ready);
-            if (!ready.isEmpty()) PendingInstall.recordBatch(game, ready);
+            configs.arm(prepared, ready, removals);
+            if (!ready.isEmpty() || !removals.isEmpty()) PendingInstall.recordBatch(game, ready, removals);
             SelfUpdate.arm(game, updater);
             int installedConfigs = configs.recover(false);
             int updates = ready.size() + (updater == null ? 0 : 1);
             if (updater != null) names.add(updater.name());
             UpdateState.newModsDownloaded = updates; UpdateState.configEntriesUpdated = installedConfigs;
             UpdateState.downloadedNames = names;
+            UpdateState.modsToRemove = removals.size(); UpdateState.removalNames = removalNames;
+            for (String name : removals.keySet()) window.item(UpdateProgress.Kind.REMOVAL, name, name, UpdateProgress.Phase.REMOVE_READY, 0, -1);
             log("Hazir: " + ready.size() + " mod, " + prepared.entries().size() + " config girdisi");
-            return new UpdateReport(updates, prepared.entries().size(), "");
+            return new UpdateReport(updates, prepared.entries().size(), removals.size(), "");
         } catch (ConfigInstaller.RecoveryException fatal) {
             throw new IllegalStateException("Config recovery failed; refusing an incomplete game startup", fatal);
         } catch (Exception error) {

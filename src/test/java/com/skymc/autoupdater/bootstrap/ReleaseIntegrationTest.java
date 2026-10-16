@@ -21,6 +21,28 @@ class ReleaseIntegrationTest {
         assertEquals(-1, Files.mismatch(release(), regular));
     }
     String java() { return Path.of(System.getProperty("java.home"), "bin", "java.exe").toString(); }
+    @Test void obfuscatedHelperRemovesOnlyAfterExitAndRetainsTheOriginal() throws Exception {
+        Files.createDirectories(game.resolve("mods")); Path old=game.resolve("mods/old.jar"); Files.writeString(old,"original mod");
+        PendingInstall.recordBatch(game,Map.of(),Map.of("old.jar",ModDownloader.sha1Of(old.toFile())));
+        String backupId=PendingInstall.entries(game).getAsJsonObject("old.jar").get("backupId").getAsString();
+        Process parent=new ProcessBuilder("powershell.exe","-NoProfile","-NonInteractive","-Command","Start-Sleep -Seconds 120").start();
+        Process helper=null;
+        try {
+            helper=startHelper(parent.pid(),List.of());
+            awaitFile(StateFiles.root(game).resolve("ready-"+parent.pid()+".json"),10);
+            JsonObject request=new JsonObject(); request.addProperty("sessionId","test-session"); request.addProperty("relaunch",false);
+            StateFiles.write(StateFiles.root(game).resolve("install-"+parent.pid()+".json"),request);
+            Thread.sleep(500); assertTrue(Files.exists(old),"Even an early install request must not remove a live mod");
+            parent.destroyForcibly(); assertTrue(parent.waitFor(10,TimeUnit.SECONDS)); assertTrue(helper.waitFor(20,TimeUnit.SECONDS));
+            assertFalse(Files.exists(old)); assertFalse(PendingInstall.hasPending(game));
+            assertEquals("original mod",Files.readString(StateFiles.root(game).resolve("removed-mods/"+backupId+"/old.jar")));
+            JsonObject result=StateFiles.read(StateFiles.root(game).resolve("result-"+parent.pid()+".json"));
+            assertTrue(result.get("installed").getAsBoolean()); assertFalse(result.get("relaunched").getAsBoolean());
+        } finally {
+            parent.destroyForcibly(); parent.waitFor(10,TimeUnit.SECONDS);
+            if(helper!=null && helper.isAlive()) { helper.destroyForcibly(); helper.waitFor(10,TimeUnit.SECONDS); }
+        }
+    }
     @Test void releaseContainsServiceRelocatedGsonAndOnlyEmbeddedModMetadata() throws Exception {
         try (JarFile jar = new JarFile(release().toFile())) {
             assertNotNull(jar.getJarEntry("META-INF/services/net.minecraftforge.forgespi.locating.IModLocator"));
@@ -34,7 +56,7 @@ class ReleaseIntegrationTest {
                 for (var entry = embedded.getNextEntry(); entry != null; entry = embedded.getNextEntry()) {
                     if (entry.getName().equals("META-INF/mods.toml")) {
                         String text = new String(embedded.readAllBytes(), StandardCharsets.UTF_8);
-                        assertTrue(text.contains("version=\"1\"")); assertTrue(text.contains("IGNORE_ALL_VERSION")); metadata = true;
+                        assertTrue(text.contains("version=\"2.0\"")); assertTrue(text.contains("IGNORE_ALL_VERSION")); metadata = true;
                     }
                     if (entry.getName().equals("com/skymc/autoupdater/AutoUpdaterMod.class")) entrypoint = true;
                 }

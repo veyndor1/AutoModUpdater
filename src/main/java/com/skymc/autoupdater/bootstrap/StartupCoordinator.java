@@ -22,6 +22,10 @@ final class StartupCoordinator {
                     state = StateFiles.snapshot(game);
                     StateFiles.write(StateFiles.session(game, ProcessHandle.current().pid()), state);
                     if (PendingInstall.hasPending(game) || SelfUpdate.hasPending(game)) HelperLauncher.start(game, state);
+                    if (report.removals()>0) {
+                        HelperLauncher.requestRestart(game, state, false);
+                        exit(window); return null;
+                    }
                     return state; // Original GAME-layer prompt is the UI-unavailable fallback.
                 }
                 if (!report.successful()) {

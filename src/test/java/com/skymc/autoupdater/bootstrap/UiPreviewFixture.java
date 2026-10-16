@@ -117,8 +117,40 @@ public final class UiPreviewFixture {
             if(early.get(2,TimeUnit.SECONDS)!=ProgressWindow.Choice.CONTINUE) throw new AssertionError("Early Continue failed");
             if(completion(window).isVisible()) throw new AssertionError("Reduced-motion completion did not disappear");
             if(cues.get()!=2) throw new AssertionError("A new successful pass must notify once again");
-            System.out.println("Offscreen Swing preview: themes, 3-second transparent completion, once-only cue, delayed action feedback, continue/retry/close and double-click checks passed");
+            window.begin();
+            SwingUtilities.invokeAndWait(() -> frame.setSize(940,820));
+            for(int i=0;i<40;i++) {
+                String id=i==0 ? "old-performance-mod-1.20.1.jar" : "old-module-"+i+".jar";
+                window.removal(id,i==0 ? "Eski performans modülü" : "Paketten ayrılan mod "+i,"Yeni paketle uyumsuz; yerine güncel modül geliyor.");
+                window.item(UpdateProgress.Kind.REMOVAL,id,"",i==1 ? UpdateProgress.Phase.ABSENT : UpdateProgress.Phase.REMOVE_READY,0,-1);
+            }
+            window.inventory(UpdateProgress.Kind.MOD,"new","Yeni performans modülü");
+            window.item(UpdateProgress.Kind.MOD,"new","",UpdateProgress.Phase.READY,0,-1);
+            Future<ProgressWindow.Choice> removed=loader.submit(() -> window.awaitSuccess(new UpdateReport(1,0,39,""),true,true));
+            advance(window,3200); capture(frame,output.resolve("removals-night.png"));
+            SwingUtilities.invokeAndWait(() -> button(frame,"incoming-mods").doClick()); advance(window,300);
+            capture(frame,output.resolve("removals-incoming.png"));
+            SwingUtilities.invokeAndWait(() -> button(frame,"removed-mods").doClick()); advance(window,300);
+            SwingUtilities.invokeAndWait(() -> button(frame,"quick-theme").doClick()); advance(window,550);
+            capture(frame,output.resolve("removals-light.png"));
+            SwingUtilities.invokeAndWait(() -> frame.setSize(680,500)); advance(window,300);
+            capture(frame,output.resolve("removals-compact.png"));
+            if(!"Zorunlu kaldırılacak modlar ve nedenleri".equals(findList(frame,"mods").getAccessibleContext().getAccessibleName()))
+                throw new AssertionError("Removal list must have an accessible name");
+            String accessible=findList(frame,"mods").getModel().getElementAt(0).toString();
+            if(!accessible.contains("old-performance") || !accessible.contains("uyumsuz") || !accessible.contains("Kaldırılacak"))
+                throw new AssertionError("Removal details are missing from accessible rows");
+            SwingUtilities.invokeAndWait(() -> button(frame,"exit").doClick());
+            if(removed.get(2,TimeUnit.SECONDS)!=ProgressWindow.Choice.EXIT) throw new AssertionError("Removal exit failed");
+            System.out.println("Offscreen Swing preview: themes, reduced motion, completion, actions, 40 removal rows, reasons, accessible details and compact layout passed");
         } finally { window.close(); loader.shutdownNow(); }
+    }
+    private static JList<?> findList(Container parent,String name) {
+        for(Component c:parent.getComponents()) {
+            if(c instanceof JList<?> list && name.equals(list.getName())) return list;
+            if(c instanceof Container child) { JList<?> result=findList(child,name); if(result!=null) return result; }
+        }
+        return null;
     }
     private static void advance(ProgressWindow window,int milliseconds) throws Exception {
         var tick=ProgressWindow.class.getDeclaredMethod("tick"); tick.setAccessible(true);

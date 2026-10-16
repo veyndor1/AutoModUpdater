@@ -2,7 +2,7 @@
 
 ## Supported distribution
 
-The current player distribution is AutoModUpdater 1 for Minecraft 1.20.1,
+The current player distribution is AutoModUpdater 2.0 for Minecraft 1.20.1,
 Forge 47.4.10 and Java 17, specifically for veyndor1's `mcmods2` pack.
 Pack players download the complete JAR from the pack owner's release.
 Do not install a bootstrap-only or embedded-client-only artifact.
@@ -25,6 +25,9 @@ Include the updater version and a minimal redacted reproduction.
 - Mod and updater replacements wait until the game exits; a profile lock prevents
   competing installers. Journals support recovery after interrupted replacement.
 - Authentication arguments used for restart are kept in memory.
+- Mandatory `removeMods` entries target exact JAR filenames. After release
+  verification, the helper rechecks the local hash and moves the file into a
+  retained backup after game exit. Changed files and the updater itself are protected.
 
 ## Trust boundaries and limits
 

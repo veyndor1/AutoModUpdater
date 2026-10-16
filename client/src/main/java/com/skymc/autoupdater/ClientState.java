@@ -24,7 +24,8 @@ final class ClientState {
             return new ClientState(data, root, pid);
         } catch (Exception e) { return null; }
     }
-    int mods() { return json.get("newModsDownloaded").getAsInt(); }
+    int removals() { return json.has("modsToRemove") ? json.get("modsToRemove").getAsInt() : 0; }
+    int mods() { return json.get("newModsDownloaded").getAsInt() + removals(); }
     String error() { return json.has("errorMessage") ? json.get("errorMessage").getAsString() : ""; }
     boolean helperReady() { return json.has("helperReady") && json.get("helperReady").getAsBoolean(); }
     boolean autoRestart() { return json.get("autoRestart").getAsBoolean(); }
@@ -32,6 +33,7 @@ final class ClientState {
     List<String> names() {
         List<String> names = new ArrayList<>();
         json.getAsJsonArray("downloadedNames").forEach(e -> names.add(e.getAsString()));
+        if (json.has("removalNames")) json.getAsJsonArray("removalNames").forEach(e -> names.add("Kaldırılacak: " + e.getAsString()));
         return names;
     }
     boolean request(String action, boolean relaunch) {

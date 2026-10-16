@@ -3,5 +3,12 @@
   "minecraftVersion": "1.20.1",
   "packId": "mc-mods2-1.20.1",
   "mods": [],
-  "configs": []
+  "configs": [],
+  "removeMods": [
+    {
+      "fileName": "eski-mod-1.20.1.jar",
+      "name": "Eski Mod",
+      "reason": "Yeni paketle uyumsuz."
+    }
+  ]
 }

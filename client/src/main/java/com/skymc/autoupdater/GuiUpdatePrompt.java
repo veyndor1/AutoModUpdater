@@ -37,7 +37,7 @@ public final class GuiUpdatePrompt extends Screen {
             super.render(graphics, mouseX, mouseY, partialTicks);
             return;
         }
-        graphics.drawCenteredString(font, state.mods() + " yeni mod indirildi.", cx, y + 18, 0xFFFF55);
+        graphics.drawCenteredString(font, (state.mods()-state.removals()) + " mod hazir · " + state.removals() + " mod kaldirilacak.", cx, y + 18, 0xFFFF55);
         graphics.drawCenteredString(font, "Modlarin etkinlesmesi icin Minecraft yeniden baslatilmali.", cx, y + 34, 0xCCCCCC);
         graphics.drawCenteredString(font, "Made by veyndor", cx, y + 52, 0x555A65);
         List<String> names = state.names();

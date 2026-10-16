@@ -6,7 +6,7 @@ $game = Join-Path $runtime $GameName
 $cwd = Join-Path $runtime ($GameName + '-cwd')
 [IO.Directory]::CreateDirectory($cwd) | Out-Null
 [IO.Directory]::CreateDirectory((Join-Path $game 'mods')) | Out-Null
-Copy-Item -LiteralPath (Join-Path $workspace 'build/libs/AutoModUpdater-1-release.jar') -Destination (Join-Path $game 'mods/AutoModUpdater.jar') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'build/libs/AutoModUpdater-2.0-release.jar') -Destination (Join-Path $game 'mods/AutoModUpdater.jar') -Force
 $artifactHash = (Get-FileHash -LiteralPath (Join-Path $game 'mods/AutoModUpdater.jar') -Algorithm SHA256).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText((Join-Path $game 'release-sha256.txt'),$artifactHash)
 $argv = Get-Content -Raw -LiteralPath (Join-Path $workspace '.tools/runtime-command.json') | ConvertFrom-Json
